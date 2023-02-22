@@ -1,0 +1,153 @@
+---
+title: Meldeplattform
+date: 2023-02-22
+---
+
+# Welcome to Rmarkdown!
+
+Rmarkdown documents are a nice way to combine text with code.
+
+```{r}
+print("This is a code chunk.")
+```
+
+```{r}
+print("Inside this chunk, every character counts!")
+```
+
+Outside the chunk, you're safe! This text will not be executed as code. Feel free to edit and take your own notes here.
+
+You can follow markdown conventions to produce beautiful documents: https://www.markdownguide.org/basic-syntax/
+
+# Load packages
+
+Packages (or libraries, or modules) are pieces of code that can be used in your own code.
+
+We will be relying on two packages today:
+
+```{r}
+library(tidyverse)
+library(jsonlite)
+```
+
+If you get an error while executing this, you will need to install the missing packages first.
+
+# Get data from API
+
+```{r}
+url <- "https://www.meldeplattform-radverkehr.de/geoserver/geocms/ows?service=WFS&version=1.0&request=GetFeature&typeName=geocms:public-wms&authkey=60fc1497-53bb-4cbf-8a03-b2c477275d5b&outputFormat=application/json&srsname=EPSG:3857"
+response <- read_json(url)
+```
+
+# Explore the response
+
+The response is a "nested" list: A list of lists (of lists)...
+
+What entries are in the list?
+
+```{r}
+names(response)
+```
+
+Let's explore the entries:
+
+```{r}
+response$type
+
+response$totalFeatures
+
+#very long output:
+#response$features
+
+#very long output:
+#response$features[[112]]
+```
+
+What is some information that is visible here but not in the browser?
+
+What is visible in the browser but obscured here?
+
+# Convert to tabular format
+
+This next bit is some classic "data wrangling".
+
+```{r}
+alerts <- response$features %>%
+  map(\(f) { as.list(unlist(f)) }) %>%
+  bind_rows()
+```
+
+# Get a feeling for the dataset
+
+```{r}
+View(alerts)
+str(alerts)
+summary(alerts)
+names(alerts)
+alerts$properties.comment[1]
+```
+
+# How frequent are the categories?
+
+```{r}
+ggplot(alerts, aes(x = properties.category)) +
+  geom_bar() +
+  coord_flip()
+```
+
+# Who reports these things?
+
+```{r}
+alerts %>%
+  group_by(properties.reporter) %>%
+  summarize(count = n()) %>%
+  arrange(desc(count))
+```
+
+# What about Kettenhofweg?
+
+```{r kette}
+alerts %>%
+  filter(str_detect(properties.addresssummary, "Kettenhofweg")) %>%
+  .$properties.ticketdescription
+```
+
+# Let's do some mapping!
+
+We need more libraries for this.
+
+```{r}
+library(sf)
+library(leaflet)
+```
+
+# Convert to Simple Features
+
+```{r}
+response$crs
+```
+
+The coordinate reference system is an important piece of information to properly interpret geographical coordinates.
+
+It can be identified by its EPSG code. Let's remember it for later:
+
+```{r}
+crs <- 3857
+```
+
+```{r}
+alert_map <- alerts %>%
+  st_as_sf(coords = c("geometry.coordinates1", "geometry.coordinates2")) %>%
+  st_set_crs(crs) %>%
+  st_transform(4326)
+```
+
+# Map it
+
+```{r}
+alert_map %>%
+  filter(parse_number(properties.status) >= 12) %>%
+  leaflet() %>%
+  addTiles() %>%
+  leaflet::addCircleMarkers()
+```

@@ -1,0 +1,99 @@
+---
+title: Meldeplattform
+name:
+date: 2023-02-22
+---
+
+# Welcome to Rmarkdown!
+
+Rmarkdown documents are a nice way to combine text with code.
+
+```{r}
+print("This is a code chunk.")
+```
+
+```{r}
+print("Inside this chunk, every character counts!"]
+```
+
+Outside the chunk, you're safe! This text will not be executed as code. Feel free to edit and take your own notes here.
+
+You can follow markdown conventions to produce beautiful documents: https://www.markdownguide.org/basic-syntax/
+
+# Load packages
+
+Packages (or libraries, or modules) are pieces of code that can be used in your own code.
+
+We will be relying on two packages today:
+
+```{r}
+library(tidyverse)
+library(jsonlite)
+```
+
+If you get an error while executing this, you will need to install the missing packages first.
+
+# Get data from API
+
+```{r}
+url <- ""
+response <- read_json(url)
+```
+
+# Explore the response
+
+The response is a "nested" list: A list of lists (of lists)...
+
+What entries are in the list?
+
+```{r}
+```
+
+Let's explore the entries:
+
+```{r}
+```
+
+What is some information that is visible here but not in the browser?
+
+What is visible in the browser but obscured here?
+
+# Convert to tabular format
+
+This next bit is some classic "data wrangling".
+
+```{r}
+alerts <- response$features %>%
+  map(\(f) { as.list(unlist(f)) }) %>%
+  bind_rows()
+```
+
+# Get a feeling for the dataset
+
+```{r}
+```
+
+# How frequent are the categories?
+
+```{r}
+alerts %>%
+  ggplot(aes()) +
+  geom_
+```
+
+# Who reports these things?
+
+```{r}
+alerts %>%
+  group_by() %>%
+  summarize()
+```
+
+# What about Kettenhofweg?
+
+```{r}
+```
+
+# If we have time: Let's do some mapping!
+
+...
